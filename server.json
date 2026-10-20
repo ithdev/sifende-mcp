@@ -1,0 +1,49 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ithdev/sifende-mcp",
+  "title": "Sifende",
+  "description": "Servidor MCP de Sifende: consultá y emití facturas electrónicas de SIFEN (Paraguay).",
+  "repository": {
+    "url": "https://github.com/ithdev/sifende-mcp",
+    "source": "github"
+  },
+  "websiteUrl": "https://sifende.com.py/docs",
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@sifende/mcp",
+      "version": "0.1.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SIFENDE_API_KEY",
+          "description": "API key del contribuyente (sk_sandbox_, sk_test_ o sk_live_). El prefijo fija el ambiente.",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "SIFENDE_MCP_ALLOW_WRITE",
+          "description": "Habilita las herramientas que emiten documentos y registran eventos. Por defecto solo lectura.",
+          "isRequired": false,
+          "default": "false",
+          "choices": ["true", "false"]
+        },
+        {
+          "name": "SIFENDE_BASE_URL",
+          "description": "URL base de la API. Solo para apuntar a otro host; por defecto https://api.sifende.com.py.",
+          "isRequired": false
+        },
+        {
+          "name": "SIFENDE_MCP_KUDE_DIR",
+          "description": "Carpeta donde se guardan los PDF del KuDE. Por defecto una carpeta temporal.",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}
