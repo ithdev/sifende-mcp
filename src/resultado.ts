@@ -37,7 +37,9 @@ export function describirError(error: unknown): string {
     }
     return lineas.join('\n');
   }
-  if (error instanceof DOMException && error.name === 'AbortError') return 'La operación fue cancelada por el cliente.';
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return 'El cliente MCP interrumpió la llamada antes de recibir la respuesta.';
+  }
   return error instanceof Error ? error.message : String(error);
 }
 
@@ -67,7 +69,11 @@ function describirErrorApi(error: SifendeApiError): string {
     );
   }
 
-  if (error.status === 401) lineas.push('Revisá SIFENDE_API_KEY: está ausente, es inválida, expiró o fue revocada.');
+  if (error.status === 401) {
+    lineas.push(
+      'Revisá SIFENDE_API_KEY: la clave es inválida, expiró o fue revocada. El usuario puede crear otra en el panel de Sifende (API Keys → Crear API Key).',
+    );
+  }
   if (error.reintentarEn !== undefined) lineas.push(`Reintentá en ${Math.ceil(error.reintentarEn)} s.`);
   if (error.idempotencyKey && [409, 503].includes(error.status)) {
     lineas.push(`Si repetís la operación, usá la misma idempotencyKey: ${error.idempotencyKey}`);

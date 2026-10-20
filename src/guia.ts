@@ -8,13 +8,13 @@ El prefijo de la API key fija el ambiente: \`sk_sandbox_\` (Sandbox de Sifende, 
 ## Flujo de emisión
 1. Armá el documento. Partí de \`obtener_ejemplo_documento\` y verificá los valores de enumeración con \`listar_enumeraciones\`.
 2. Si hay montos, calculá el total con \`calcular_totales\`: en contado, \`montoPago\` debe coincidir con el total redondeado.
-3. \`emitir_documento\` responde enseguida con el CDC y estado \`PENDIENTE\`. Guardá la \`idempotencyKey\` que devuelve.
-4. Consultá \`consultar_documento\` cada 5 segundos, hasta 5 minutos, hasta un estado terminal: \`APROBADO\`, \`APROBADO_OBSERVACION\` (también es éxito), \`RECHAZADO\`, \`CANCELADO\` o \`ERROR\`.
+3. \`emitir_documento\` responde enseguida con el CDC y estado \`PENDIENTE\`. Guardá la \`idempotencyKey\` que devuelve: sirve para reintentar sin duplicar.
+4. Llamá a \`consultar_documento\` cada 5 segundos, por un máximo de 5 minutos, hasta un estado terminal: \`APROBADO\`, \`APROBADO_OBSERVACION\` (también es éxito), \`RECHAZADO\`, \`CANCELADO\` o \`ERROR\`.
 5. Con el documento aprobado, \`descargar_kude\` guarda el PDF.
 
-## Reglas que más fallan
+## Errores más comunes
 - Los montos en guaraníes son enteros, sin decimales ni separadores de miles.
-- Receptor CONTRIBUYENTE (con RUC): lleva \`tipoContribuyenteReceptor\` y \`digitoVerificador\`, y no lleva \`tipoDocumento\`. Receptor NO_CONTRIBUYENTE: lleva \`tipoDocumento\` y no lleva los otros dos. Consumidor sin nombre: tipoDocumento INNOMINADO, numeroDocumento "0", nombreRazonSocial "Sin Nombre".
+- Receptor con \`tipoContribuyente\` CONTRIBUYENTE (tiene RUC): lleva \`tipoContribuyenteReceptor\` y \`digitoVerificador\`, y no lleva \`tipoDocumento\`. Receptor NO_CONTRIBUYENTE: lleva \`tipoDocumento\` y no lleva los otros dos. Consumidor sin nombre: tipoDocumento INNOMINADO, numeroDocumento "0", nombreRazonSocial "Sin Nombre".
 - El emisor, el timbrado y el correlativo no se envían: salen de la API key.
 - Nota de crédito y de débito requieren \`motivoEmision\` y \`documentoAsociado\`, y no llevan \`tipoTransaccion\` ni \`condicionOperacion\`.
 - Nunca inventes valores de enumeración: consultalos con \`listar_enumeraciones\`.

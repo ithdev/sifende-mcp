@@ -38,8 +38,10 @@ describe('catálogo de herramientas', () => {
     for (const nombre of HERRAMIENTAS_ESCRITURA) {
       expect(por[nombre]?.annotations?.readOnlyHint, nombre).toBe(false);
       expect(por[nombre]?.annotations?.openWorldHint, nombre).toBe(true);
-      expect(por[nombre]?.description, nombre).toContain('documento fiscal real');
+      expect(por[nombre]?.description, nombre).toContain('ATENCIÓN: con una API key sk_live_');
     }
+    // Los eventos no consumen numeración: la advertencia de emisión no debe contradecir a nominar_documento.
+    expect(por.nominar_documento?.description).not.toContain('consume numeración y cupo');
     expect(por.cancelar_documento?.annotations?.destructiveHint).toBe(true);
     expect(por.inutilizar_numeracion?.annotations?.destructiveHint).toBe(true);
     expect(por.emitir_documento?.annotations?.destructiveHint).toBe(false);

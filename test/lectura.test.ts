@@ -116,10 +116,9 @@ describe('descargar_kude', () => {
 describe('catálogos y consultas', () => {
   it('testConsultarPadronNoEncontrado', async () => {
     sesion = await conectar({ fetch: mockFetch(() => json({})) });
-    expect(datosDe(await sesion.llamar('consultar_padron', { documento: '80012345-0' }))).toEqual({
-      encontrado: false,
-      documento: '80012345-0',
-    });
+    const datos = datosDe(await sesion.llamar('consultar_padron', { documento: '80012345-0' }));
+    expect(datos).toMatchObject({ encontrado: false, documento: '80012345-0' });
+    expect(datos.siguientePaso).toContain('NO_CONTRIBUYENTE');
   });
 
   it('testConsultarPadronEncontrado', async () => {

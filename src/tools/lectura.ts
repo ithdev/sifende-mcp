@@ -18,7 +18,7 @@ const AFECTACIONES = ['GRAVADO', 'EXONERADO', 'EXENTO', 'GRAVADO_PARCIAL'] as co
 
 const cdc = z
   .string()
-  .regex(CDC, 'El CDC tiene exactamente 44 dígitos')
+  .regex(CDC, 'El CDC debe tener exactamente 44 dígitos')
   .describe('CDC (Código de Control del Documento Electrónico): 44 dígitos.');
 
 export const HERRAMIENTAS_LECTURA = [
@@ -59,7 +59,7 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
           ? {}
           : {
               aviso:
-                'Emitir documentos y registrar eventos está deshabilitado. Se habilita con SIFENDE_MCP_ALLOW_WRITE=true.',
+                'La escritura está deshabilitada: no se pueden emitir documentos ni registrar eventos. Para habilitarla, el usuario tiene que agregar SIFENDE_MCP_ALLOW_WRITE=true en el bloque "env" del cliente MCP y reiniciar el servidor.',
             }),
       }),
   );
@@ -69,7 +69,7 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
     {
       title: 'Consultar estado de un documento',
       description:
-        'Consulta el estado de un documento electrónico por su CDC: PENDIENTE, APROBADO, APROBADO_OBSERVACION (también es éxito), RECHAZADO, CANCELADO o ERROR. Incluye el protocolo de autorización de SIFEN y, si fue rechazado, el motivo (mensajeRechazo). Usala después de emitir, cada 5 segundos hasta 5 minutos, hasta que el estado sea terminal.',
+        'Consulta el estado de un documento electrónico por su CDC: PENDIENTE, APROBADO, APROBADO_OBSERVACION (también es éxito), RECHAZADO, CANCELADO o ERROR. Incluye el protocolo de autorización de SIFEN y, si fue rechazado, el motivo (mensajeRechazo). Después de emitir, llamala cada 5 segundos hasta que el estado sea terminal, por un máximo de 5 minutos.',
       inputSchema: { cdc },
       annotations: { ...SOLO_LECTURA, title: 'Consultar estado de un documento' },
     },
@@ -83,7 +83,7 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
     {
       title: 'Descargar el KuDE (PDF)',
       description:
-        'Descarga el KuDE (representación gráfica en PDF) de un documento APROBADO y lo guarda en un archivo local; devuelve la ruta. Si el PDF todavía se está preparando, espera hasta esperarSegundos y, si no llega, avisa para reintentar. Con una API key sandbox el PDF dice "SIN VALIDEZ FISCAL". Con incluirBase64 devuelve además el PDF embebido, que pesa mucho en el contexto del modelo: usalo sólo si el cliente no puede leer el archivo.',
+        'Descarga el KuDE (representación gráfica en PDF) de un documento APROBADO y lo guarda en un archivo local; devuelve la ruta. Si el PDF todavía se está preparando, espera hasta esperarSegundos y, si no llega, avisa para reintentar. Con una API key sandbox el PDF dice "SIN VALIDEZ FISCAL". Con incluirBase64 devuelve además el PDF embebido, que pesa mucho en el contexto del modelo: usalo solo si el cliente no puede leer el archivo.',
       inputSchema: {
         cdc,
         esperarSegundos: z
@@ -111,7 +111,7 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
         const pdf = await sifende.documentos.descargarKude(cdc, { esperarMs: esperarSegundos * 1000, signal });
         if (!(pdf.length > 4 && String.fromCharCode(...pdf.subarray(0, 4)) === '%PDF')) {
           return fallo(
-            'La API respondió algo que no es un PDF. Reintentá en unos segundos o consultá el estado del documento.',
+            'La API respondió algo que no es un PDF. Reintentá en unos segundos o revisá el estado del documento con consultar_documento.',
           );
         }
         await mkdir(config.directorioKude, { recursive: true, mode: 0o700 });
@@ -150,7 +150,7 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
     {
       title: 'Consultar RUC o cédula en el padrón',
       description:
-        'Busca un RUC o una cédula en el padrón de la SET y devuelve razón social, tipo de contribuyente y domicilio, con los mismos nombres de campo que el receptor de un documento. Úsala para completar el receptor de una factura. Acepta el número con o sin puntos y con o sin dígito verificador.',
+        'Busca un RUC o una cédula en el padrón de la SET y devuelve razón social, tipo de contribuyente y domicilio, con los mismos nombres de campo que el receptor de un documento. Usala para completar el receptor de una factura. Acepta el número con o sin puntos y con o sin dígito verificador.',
       inputSchema: {
         // Algunos clientes mandan el RUC como número; con 8 dígitos no hay pérdida de precisión.
         documento: z
@@ -161,7 +161,13 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
     },
     manejar(async ({ documento }: { documento: string }, signal) => {
       const datos = await sifende.padron.consultar(documento, { signal });
-      return datos ? exito(datos) : exito({ encontrado: false, documento });
+      if (datos) return exito(datos);
+      return exito({
+        encontrado: false,
+        documento,
+        siguientePaso:
+          'Verificá el número con el usuario. Si es correcto, el receptor no está inscripto como contribuyente: emitilo como NO_CONTRIBUYENTE con tipoDocumento y numeroDocumento.',
+      });
     }),
   );
 
@@ -233,7 +239,11 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
       async ({ nivel, id }: { nivel: 'departamentos' | 'distritos' | 'ciudades'; id?: number | undefined }, signal) => {
         if (nivel === 'departamentos')
           return exito({ departamentos: await sifende.catalogos.departamentos({ signal }) });
-        if (id === undefined) return fallo(`El nivel "${nivel}" requiere el parámetro id.`);
+        if (id === undefined) {
+          const [padre, nivelPadre] =
+            nivel === 'distritos' ? ['del departamento', 'departamentos'] : ['del distrito', 'distritos'];
+          return fallo(`El nivel "${nivel}" requiere id: el id ${padre}. Obtenelo con nivel "${nivelPadre}".`);
+        }
         if (nivel === 'distritos') return exito({ distritos: await sifende.catalogos.distritos(id, { signal }) });
         return exito({ ciudades: await sifende.catalogos.ciudades(id, { signal }) });
       },
@@ -286,7 +296,7 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
     {
       title: 'Calcular totales de un documento',
       description:
-        'Calcula el total de un documento con las mismas reglas que valida Sifende, incluido el redondeo oficial de la SET (en guaraníes, al múltiplo de 50 inferior). Úsala para obtener el montoPago exacto de una venta al contado antes de emitir. Los precios incluyen IVA. Es un cálculo local: no emite nada ni llama a la API.',
+        'Calcula el total de un documento con las mismas reglas que valida Sifende, incluido el redondeo oficial de la SET (en guaraníes, al múltiplo de 50 inferior). Usala para obtener el montoPago exacto de una venta al contado antes de emitir. Los precios incluyen IVA. Es un cálculo local: no emite nada ni llama a la API.',
       inputSchema: {
         monedaOperacion: z
           .string()
@@ -320,7 +330,7 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
                 .min(0)
                 .max(100)
                 .optional()
-                .describe('Proporción gravada en porcentaje; sólo para GRAVADO_PARCIAL.'),
+                .describe('Proporción gravada en porcentaje; solo para GRAVADO_PARCIAL.'),
               descuentoParticular: z
                 .number()
                 .min(0)

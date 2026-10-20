@@ -25,12 +25,14 @@ export function leerConfig(env: NodeJS.ProcessEnv = process.env): Config {
 
   const escritura = (env.SIFENDE_MCP_ALLOW_WRITE ?? '').trim().toLowerCase();
   if (!(VERDADEROS.has(escritura) || FALSOS.has(escritura))) {
-    throw new ConfigError(`SIFENDE_MCP_ALLOW_WRITE debe ser "true" o "false" (recibido: "${escritura}")`);
+    throw new ConfigError(`SIFENDE_MCP_ALLOW_WRITE debe ser "true" o "false"; se recibió "${escritura}".`);
   }
 
   const baseUrl = env.SIFENDE_BASE_URL?.trim() || undefined;
   if (baseUrl !== undefined && !URL.canParse(baseUrl)) {
-    throw new ConfigError(`SIFENDE_BASE_URL no es una URL válida: ${baseUrl}`);
+    throw new ConfigError(
+      `SIFENDE_BASE_URL no es una URL válida: ${baseUrl}. Usá una URL completa, como https://api.sifende.com.py, o quitá la variable.`,
+    );
   }
 
   return {

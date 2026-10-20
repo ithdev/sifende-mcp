@@ -19,8 +19,11 @@ export const HERRAMIENTAS_ESCRITURA = [
 
 const TIPOS_DOCUMENTO = Object.keys(DOCS_MODELOS) as [keyof typeof DOCS_MODELOS, ...(keyof typeof DOCS_MODELOS)[]];
 
-const ADVERTENCIA =
-  'ATENCIÓN: con una API key sk_live_ esto registra un documento fiscal real ante la SET, con validez legal y consumo de numeración y de cupo del plan. Confirmá con el usuario los datos antes de llamarla. Con sk_sandbox_ y sk_test_ no tiene validez fiscal en producción.';
+const ADVERTENCIA_EMISION =
+  'ATENCIÓN: con una API key sk_live_ esto registra un documento fiscal real ante la SET, con validez legal, y consume numeración y cupo del plan. Confirmá los datos con el usuario antes de llamarla. Con sk_sandbox_ y sk_test_ no tiene validez fiscal.';
+
+const ADVERTENCIA_EVENTO =
+  'ATENCIÓN: con una API key sk_live_ esto registra un evento fiscal real ante la SET, con validez legal. Confirmá los datos con el usuario antes de llamarla. Con sk_test_ no tiene validez fiscal.';
 
 const idempotencyKey = z
   .string()
@@ -30,10 +33,10 @@ const idempotencyKey = z
   )
   .optional()
   .describe(
-    'Clave de idempotencia (1 a 255 caracteres ASCII). Si se omite se genera una y se devuelve. Repetir una operación con la misma clave devuelve el resultado original sin duplicarla: usala para reintentar tras un corte de conexión.',
+    'Clave de idempotencia (1 a 255 caracteres ASCII). Si se omite, se genera una y se devuelve. Repetir una operación con la misma clave devuelve el resultado original sin duplicarla: usala para reintentar tras un corte de conexión.',
   );
 
-const cdcFactura = z.string().regex(CDC, 'El CDC tiene exactamente 44 dígitos');
+const cdcFactura = z.string().regex(CDC, 'El CDC debe tener exactamente 44 dígitos');
 
 const CAMPOS_MONTO_ENTERO = ['montoPago', 'montoEntregaInicial', 'monto'] as const;
 
@@ -65,14 +68,14 @@ export function registrarEscritura(servidor: McpServer, { sifende }: Contexto): 
     'emitir_documento',
     {
       title: 'Emitir un documento electrónico',
-      description: `Emite un documento electrónico de SIFEN: factura (FACTURA_ELECTRONICA), nota de crédito, nota de débito, nota de remisión o autofactura. Responde enseguida con el CDC y estado PENDIENTE; SIFEN lo procesa después, así que seguilo con consultar_documento. El emisor, el timbrado y el correlativo salen de la API key: no se envían. Los montos en guaraníes son enteros; los valores de enumeración tienen que salir de listar_enumeraciones; el total de una venta al contado se obtiene con calcular_totales. Para partir de un modelo usá obtener_ejemplo_documento. ${ADVERTENCIA}`,
+      description: `Emite un documento electrónico de SIFEN: factura (FACTURA_ELECTRONICA), nota de crédito, nota de débito, nota de remisión o autofactura. Responde enseguida con el CDC y estado PENDIENTE; SIFEN lo procesa después, así que seguilo con consultar_documento. El emisor, el timbrado y el correlativo salen de la API key: no se envían. Los montos en guaraníes son enteros; los valores de enumeración tienen que salir de listar_enumeraciones; el total de una venta al contado se obtiene con calcular_totales. Para partir de un modelo usá obtener_ejemplo_documento. ${ADVERTENCIA_EMISION}`,
       inputSchema: {
         documento: z
           .looseObject({
             tipoDocumento: z
               .enum(TIPOS_DOCUMENTO)
               .describe('Tipo de documento a emitir. Determina qué otros campos acepta.'),
-            tipoEmision: z.literal('NORMAL').default('NORMAL').describe('Sólo se admite NORMAL.'),
+            tipoEmision: z.literal('NORMAL').default('NORMAL').describe('Solo se admite NORMAL.'),
             numeroEstablecimiento: z
               .number()
               .int()
@@ -97,7 +100,7 @@ export function registrarEscritura(servidor: McpServer, { sifende }: Contexto): 
               ),
           })
           .describe(
-            'Documento con los campos de la API de Sifende (nombres en camelCase, tal como en la documentación). Además de los obligatorios indicados, envía los que correspondan al tipo: tipoTransaccion, condicionOperacion, condicionPago, monedaOperacion, fechaEmision, motivoEmision, documentoAsociado, etc. La API valida el resto y devuelve el detalle de cada campo inválido.',
+            'Documento con los campos de la API de Sifende (nombres en camelCase, tal como en la documentación). Además de los obligatorios indicados, enviá los que correspondan al tipo: tipoTransaccion, condicionOperacion, condicionPago, monedaOperacion, fechaEmision, motivoEmision, documentoAsociado, etc. La API valida el resto y devuelve el detalle de cada campo inválido.',
           ),
         idempotencyKey,
       },
@@ -113,7 +116,7 @@ export function registrarEscritura(servidor: McpServer, { sifende }: Contexto): 
       const decimales = montosNoEnteros(documento);
       if (decimales.length > 0) {
         return fallo(
-          `En guaraníes los montos son enteros, sin decimales. Corregí: ${decimales.join(', ')}. No se emitió nada. Usá calcular_totales para obtener el montoPago exacto.`,
+          `No se emitió nada: en guaraníes los montos son enteros, sin decimales. Corregí ${decimales.join(', ')}. Para obtener el montoPago exacto, usá calcular_totales.`,
         );
       }
       const claveUsada = clave ?? crypto.randomUUID();
@@ -125,7 +128,7 @@ export function registrarEscritura(servidor: McpServer, { sifende }: Contexto): 
         ...respuesta,
         idempotencyKey: claveUsada,
         siguientePaso:
-          'El documento está PENDIENTE. Consultá consultar_documento con el cdc cada 5 segundos hasta un estado terminal.',
+          'El documento quedó PENDIENTE. Llamá a consultar_documento con este cdc cada 5 segundos hasta un estado terminal, por un máximo de 5 minutos.',
       });
     }),
   );
@@ -134,10 +137,10 @@ export function registrarEscritura(servidor: McpServer, { sifende }: Contexto): 
     'cancelar_documento',
     {
       title: 'Cancelar un documento aprobado',
-      description: `Envía a SIFEN el evento de cancelación de un documento APROBADO o APROBADO_OBSERVACION. Plazo: 48 horas desde la aprobación para facturas y 168 horas para notas de crédito, débito y remisión. Es irreversible. Revisá estadoEvento en la respuesta: sólo APROBADO confirma la cancelación; SIFEN puede responder RECHAZADO con HTTP 200. No disponible con API key sandbox. ${ADVERTENCIA}`,
+      description: `Envía a SIFEN el evento de cancelación de un documento APROBADO o APROBADO_OBSERVACION. Plazo: 48 horas desde la aprobación para facturas y 168 horas para notas de crédito, débito y remisión. Es irreversible. Revisá estadoEvento en la respuesta: solo APROBADO confirma la cancelación; SIFEN puede responder RECHAZADO con HTTP 200. No disponible con API key sandbox. ${ADVERTENCIA_EVENTO}`,
       inputSchema: {
         cdc: cdcFactura.describe('CDC del documento a cancelar: 44 dígitos.'),
-        motivo: z.string().trim().min(5).max(500).describe('Motivo de la cancelación, texto libre.'),
+        motivo: z.string().trim().min(5).max(500).describe('Motivo de la cancelación, de 5 a 500 caracteres.'),
         idempotencyKey,
       },
       annotations: {
@@ -160,7 +163,7 @@ export function registrarEscritura(servidor: McpServer, { sifende }: Contexto): 
     'inutilizar_numeracion',
     {
       title: 'Inutilizar un rango de numeración',
-      description: `Da de baja ante SIFEN un rango de números de documento que no se emitieron (hasta 1.000 números). Es irreversible. numeroFin debe ser mayor que numeroInicio. Revisá estadoEvento en la respuesta: APROBADO confirma, RECHAZADO indica que SIFEN no lo aceptó. Si responde idempotency-outcome-unknown no reenvíes el rango: confirmá con listar_eventos. No disponible con API key sandbox. ${ADVERTENCIA}`,
+      description: `Da de baja ante SIFEN un rango de números de documento que no se emitieron (hasta 1.000 números). Es irreversible. numeroFin debe ser mayor que numeroInicio. Revisá estadoEvento en la respuesta: APROBADO confirma, RECHAZADO indica que SIFEN no lo aceptó. Si responde idempotency-outcome-unknown no reenvíes el rango: confirmá con listar_eventos. No disponible con API key sandbox. ${ADVERTENCIA_EVENTO}`,
       inputSchema: {
         numeroTimbrado: z.number().int().positive().describe('Número del timbrado.'),
         establecimiento: z
@@ -200,7 +203,9 @@ export function registrarEscritura(servidor: McpServer, { sifende }: Contexto): 
     },
     manejar(async ({ idempotencyKey: clave, serie, ...rango }, signal) => {
       if (Number(rango.numeroFin) <= Number(rango.numeroInicio)) {
-        return fallo('numeroFin debe ser mayor que numeroInicio. No se envió nada.');
+        return fallo(
+          `No se envió nada: numeroFin (${rango.numeroFin}) debe ser mayor que numeroInicio (${rango.numeroInicio}).`,
+        );
       }
       const claveUsada = clave ?? crypto.randomUUID();
       const solicitud: EventoInutilizacionRequest = { ...rango, ...(serie ? { serie } : {}) };
@@ -213,7 +218,7 @@ export function registrarEscritura(servidor: McpServer, { sifende }: Contexto): 
     'nominar_documento',
     {
       title: 'Nominar una factura innominada',
-      description: `Identifica al receptor de una factura aprobada que se emitió como innominada (tipoDocumento INNOMINADO, numeroDocumento "0"). No modifica el CDC ni el KuDE originales y no consume numeración. El receptor de la nominación usa nombres distintos al de la emisión: naturaleza, ruc, tipoContribuyente, codigoCiudad. Revisá estadoEvento en la respuesta. No disponible con API key sandbox. ${ADVERTENCIA}`,
+      description: `Identifica al receptor de una factura aprobada que se emitió como innominada (tipoDocumento INNOMINADO, numeroDocumento "0"). No modifica el CDC ni el KuDE originales y no consume numeración. El receptor de la nominación usa nombres distintos al de la emisión: naturaleza, ruc, tipoContribuyente, codigoCiudad. Revisá estadoEvento en la respuesta. No disponible con API key sandbox. ${ADVERTENCIA_EVENTO}`,
       inputSchema: {
         cdc: cdcFactura.describe('CDC de la factura (empieza con 01): 44 dígitos.'),
         motivo: z.string().trim().min(5).max(500).describe('Motivo de la nominación, de 5 a 500 caracteres.'),

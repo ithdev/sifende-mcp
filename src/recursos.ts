@@ -10,7 +10,7 @@ export function registrarRecursos(servidor: McpServer, obtener: typeof fetch = f
     'sifende://guia/rapida',
     {
       title: 'Guía rápida de Sifende',
-      description: 'Flujo de emisión, reglas que más fallan y eventos, en una página.',
+      description: 'Flujo de emisión, errores más comunes y eventos, en una página.',
       mimeType: 'text/markdown',
     },
     (uri) => ({ contents: [{ uri: uri.href, mimeType: 'text/markdown', text: GUIA_RAPIDA }] }),
