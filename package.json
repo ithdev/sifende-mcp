@@ -1,0 +1,59 @@
+{
+  "name": "@sifende/mcp",
+  "version": "0.1.0",
+  "mcpName": "io.github.ithdev/sifende-mcp",
+  "description": "Servidor MCP oficial de Sifende: consultá y emití documentos electrónicos de SIFEN (Paraguay) desde Claude, Cursor y otros clientes MCP.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "sifende-mcp": "./dist/index.mjs"
+  },
+  "main": "./dist/index.mjs",
+  "files": [
+    "dist",
+    "NOTICE"
+  ],
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "sifen",
+    "sifende",
+    "factura electrónica",
+    "paraguay",
+    "set"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ithdev/sifende-mcp.git"
+  },
+  "homepage": "https://sifende.com.py/docs",
+  "bugs": {
+    "url": "https://github.com/ithdev/sifende-mcp/issues"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check",
+    "format": "biome check --write",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "inspector": "npx @modelcontextprotocol/inspector -e SIFENDE_API_KEY=$SIFENDE_API_KEY node dist/index.mjs",
+    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@sifende/sdk": "^0.1.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@types/node": "^26.6.5",
+    "tsdown": "^0.23.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5",
+    "vite": "^8.3.4"
+  }
+}
