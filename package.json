@@ -1,6 +1,6 @@
 {
   "name": "@sifende/mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "mcpName": "py.com.sifende/mcp",
   "description": "Servidor MCP oficial de Sifende: consultá y emití documentos electrónicos de SIFEN (Paraguay) desde Claude, Cursor y otros clientes MCP.",
   "license": "Apache-2.0",
