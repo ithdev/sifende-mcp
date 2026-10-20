@@ -6,6 +6,7 @@ import { calcularTotales, type ItemDto } from '@sifende/sdk';
 import { z } from 'zod';
 import { CDC, type Contexto } from '../contexto.js';
 import { DOCS_MODELOS, EJEMPLOS, NOMBRES_EJEMPLO } from '../ejemplos.js';
+import { ESTADOS_TERMINALES, HABILITAR_ESCRITURA } from '../reglas.js';
 import { exito, fallo, falloDesdeError, manejar, manejarSinArgs } from '../resultado.js';
 import { VERSION } from '../version.js';
 
@@ -42,7 +43,7 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
     {
       title: 'Información del servidor Sifende',
       description:
-        'Muestra con qué ambiente está conectado este servidor (Sandbox, pruebas con SIFEN o producción), si las herramientas de escritura están habilitadas y la versión. Llamala antes de emitir para saber si el documento tendrá validez fiscal. No hace llamadas a la red.',
+        'Muestra con qué ambiente está conectado este servidor (Sandbox, pruebas con SIFEN o producción), si las herramientas de escritura están habilitadas y la versión. No hace llamadas a la red.',
       annotations: { ...LOCAL, title: 'Información del servidor Sifende' },
     },
     async () =>
@@ -58,8 +59,7 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
         ...(config.permitirEscritura
           ? {}
           : {
-              aviso:
-                'La escritura está deshabilitada: no se pueden emitir documentos ni registrar eventos. Para habilitarla, el usuario tiene que agregar SIFENDE_MCP_ALLOW_WRITE=true en el bloque "env" del cliente MCP y reiniciar el servidor.',
+              siguientePaso: `La escritura está deshabilitada. ${HABILITAR_ESCRITURA}`,
             }),
       }),
   );
@@ -68,8 +68,7 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
     'consultar_documento',
     {
       title: 'Consultar estado de un documento',
-      description:
-        'Consulta el estado de un documento electrónico por su CDC: PENDIENTE, APROBADO, APROBADO_OBSERVACION (también es éxito), RECHAZADO, CANCELADO o ERROR. Incluye el protocolo de autorización de SIFEN y, si fue rechazado, el motivo (mensajeRechazo). Después de emitir, llamala cada 5 segundos hasta que el estado sea terminal, por un máximo de 5 minutos.',
+      description: `Consulta el estado de un documento electrónico por su CDC: PENDIENTE o un estado terminal, que puede ser ${ESTADOS_TERMINALES}. Incluye el protocolo de autorización de SIFEN y, si fue rechazado, el motivo (mensajeRechazo).`,
       inputSchema: { cdc },
       annotations: { ...SOLO_LECTURA, title: 'Consultar estado de un documento' },
     },
@@ -139,7 +138,7 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
     {
       title: 'Consultar el contribuyente de la API key',
       description:
-        'Devuelve los datos del contribuyente dueño de la API key: RUC, razón social, tipo, ambiente, actividades económicas y domicilio. Sirve para confirmar con qué RUC y en qué ambiente se va a emitir.',
+        'Devuelve los datos del contribuyente dueño de la API key: RUC, razón social, tipo, ambiente, actividades económicas y domicilio. Es el emisor de todos los documentos.',
       annotations: { ...SOLO_LECTURA, title: 'Consultar el contribuyente de la API key' },
     },
     manejarSinArgs(async (signal) => exito(await sifende.contribuyente.consultar({ signal }))),
@@ -187,7 +186,7 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
     {
       title: 'Listar enumeraciones de la API',
       description:
-        'Devuelve los valores válidos de las enumeraciones de la API (tipoDocumento, tipoPago, unidadMedida, afectacionTributaria, monedaOperacion, país, motivoEmision, etc.). Sin parámetros lista los nombres de las enumeraciones; con "nombre" devuelve sus valores. Usala siempre antes de enviar un valor de enumeración: un nombre aproximado falla recién al emitir.',
+        'Devuelve los valores válidos de las enumeraciones de la API (tipoDocumento, tipoPago, unidadMedida, afectacionTributaria, monedaOperacion, país, motivoEmision, etc.). Sin parámetros lista los nombres de las enumeraciones; con "nombre" devuelve sus valores. Usala antes de enviar un valor de enumeración: un nombre aproximado falla recién al emitir.',
       inputSchema: {
         nombre: z
           .string()
@@ -296,7 +295,7 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
     {
       title: 'Calcular totales de un documento',
       description:
-        'Calcula el total de un documento con las mismas reglas que valida Sifende, incluido el redondeo oficial de la SET (en guaraníes, al múltiplo de 50 inferior). Usala para obtener el montoPago exacto de una venta al contado antes de emitir. Los precios incluyen IVA. Es un cálculo local: no emite nada ni llama a la API.',
+        'Calcula el total de un documento con las mismas reglas que valida Sifende, incluido el redondeo oficial de la SET (en guaraníes, al múltiplo de 50 inferior). Usala para obtener el montoPago exacto de una venta al contado antes de emitir. Los precios incluyen IVA. Es un cálculo local, sin llamar a la API.',
       inputSchema: {
         monedaOperacion: z
           .string()
@@ -358,7 +357,11 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
           ...resto,
           items: items.map((item) => ({ ...item })),
         });
-        return exito({ monedaOperacion, ...totales, nota: 'Para una venta al contado, montoPago es totalGeneral.' });
+        return exito({
+          monedaOperacion,
+          ...totales,
+          siguientePaso: 'En una venta al contado, usá totalGeneral como montoPago.',
+        });
       } catch (error) {
         return falloDesdeError(error);
       }
@@ -382,7 +385,8 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
         return exito({
           tipoDocumento: tipo,
           documentacion: DOCS_MODELOS[tipo],
-          aviso: 'Este tipo tiene un contrato propio; consultá los campos en la documentación.',
+          siguientePaso:
+            'Este tipo tiene un contrato propio: leé los campos en documentacion antes de armar el documento.',
         });
       }
       const { descripcion, documento } = EJEMPLOS[ejemplo];

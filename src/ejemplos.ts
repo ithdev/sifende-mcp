@@ -43,8 +43,7 @@ export const EJEMPLOS = {
     },
   },
   factura_contado_b2b: {
-    descripcion:
-      'Factura al contado a una empresa con RUC (B2B). El receptor CONTRIBUYENTE lleva tipoContribuyenteReceptor y digitoVerificador, y no lleva tipoDocumento.',
+    descripcion: 'Factura al contado a una empresa con RUC (B2B).',
     documento: {
       tipoDocumento: 'FACTURA_ELECTRONICA',
       ...BASE,
@@ -81,7 +80,7 @@ export const EJEMPLOS = {
     },
   },
   nota_credito: {
-    descripcion: `Nota de crédito por devolución. Reemplazá el CDC de documentoAsociado ("${CDC_EJEMPLO}" es ficticio) por el de la factura que se corrige. No lleva tipoTransaccion ni condicionOperacion.`,
+    descripcion: `Nota de crédito por devolución. Reemplazá el CDC de documentoAsociado ("${CDC_EJEMPLO}" es ficticio) por el de la factura que se corrige.`,
     documento: {
       tipoDocumento: 'NOTA_DE_CREDITO_ELECTRONICA',
       ...BASE,

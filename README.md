@@ -71,7 +71,7 @@ El prefijo de la API key decide el ambiente. No hay otra URL ni otra configuraci
 
 | Prefijo | Ambiente | Validez fiscal | Eventos (cancelar, inutilizar, nominar) |
 |---|---|---|---|
-| `sk_sandbox_` | Sandbox de Sifende. No se envía a SIFEN. | No | No. La API responde `sandbox-operation-not-supported`. |
+| `sk_sandbox_` | Sandbox de Sifende. No se envía a SIFEN. | No | No. Las herramientas de eventos no aparecen. |
 | `sk_test_` | Ambiente de pruebas de SIFEN. | No | Sí |
 | `sk_live_` | Producción. | Sí | Sí |
 
@@ -138,7 +138,7 @@ Siempre disponibles.
 
 ### Herramientas de escritura
 
-Solo aparecen con `SIFENDE_MCP_ALLOW_WRITE=true`.
+Solo aparecen con `SIFENDE_MCP_ALLOW_WRITE=true`. Con una API key `sk_sandbox_` aparece solo `emitir_documento`, porque Sandbox no admite eventos.
 
 | Herramienta | Qué hace | Anotaciones |
 |---|---|---|
@@ -147,13 +147,13 @@ Solo aparecen con `SIFENDE_MCP_ALLOW_WRITE=true`.
 | `inutilizar_numeracion` | Da de baja un rango de numeración sin usar. | `destructiveHint: true` |
 | `nominar_documento` | Identifica al receptor de una factura emitida como innominada. | `destructiveHint: false` |
 
-`emitir_documento` y `nominar_documento` no se marcan como destructivas porque solo agregan: no modifican ni borran lo que ya está registrado. Aun así no tienen vuelta atrás (un documento emitido solo se anula con una cancelación dentro del plazo), y las cuatro descripciones le advierten al modelo que, con `sk_live_`, registran operaciones fiscales reales.
+`emitir_documento` y `nominar_documento` no se marcan como destructivas porque solo agregan: no modifican ni borran lo que ya está registrado. Aun así no tienen vuelta atrás (un documento emitido solo se anula con una cancelación dentro del plazo), y con una API key `sk_live_` las cuatro descripciones le advierten al modelo que registran operaciones fiscales reales y que confirme los datos con el usuario.
 
 ### Recursos
 
 | URI | Contenido |
 |---|---|
-| `sifende://guia/rapida` | Flujo de emisión y errores más comunes. |
+| `sifende://guia/rapida` | Flujo de emisión, reglas del documento y eventos. |
 | `sifende://docs/llms.txt` | Índice de la documentación, descargado de sifende.com.py. |
 | `sifende://ejemplos/{nombre}` | Los mismos documentos de ejemplo de `obtener_ejemplo_documento`. |
 

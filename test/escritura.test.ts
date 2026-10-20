@@ -227,25 +227,6 @@ describe('eventos', () => {
     expect(String(url)).toBe(`https://api.sifende.com.py/api/v1/documento-electronico/${CDC}/nominar`);
     expect(JSON.parse(String(init?.body))).toEqual({ motivo: 'El cliente pidió su factura', receptor });
   });
-
-  it('testEventoDeSandboxExplicaQueNoEstaSoportado', async () => {
-    sesion = await conectar({
-      escritura: true,
-      apiKey: 'sk_sandbox_abc',
-      fetch: mockFetch(() =>
-        json(
-          {
-            type: 'https://www.sifende.com.py/docs/solucion-problemas/sandbox-operation-not-supported',
-            title: 'Operación no disponible en SANDBOX',
-            status: 422,
-          },
-          { status: 422, problema: true },
-        ),
-      ),
-    });
-    const texto = textoDe(await sesion.llamar('cancelar_documento', { cdc: CDC, motivo: 'Motivo válido' }));
-    expect(texto).toContain('sandbox-operation-not-supported');
-  });
 });
 
 describe('montosNoEnteros', () => {
