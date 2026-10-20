@@ -6,7 +6,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
-    "sifende-mcp": "./dist/index.mjs"
+    "sifende-mcp": "dist/index.mjs"
   },
   "main": "./dist/index.mjs",
   "files": [

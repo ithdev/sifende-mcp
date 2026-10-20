@@ -38,5 +38,7 @@ jobs:
             exit 1
           fi
       - run: npm ci
+      # npm valida "bin" al leer package.json, antes de prepublishOnly: sin dist/ lo descarta del paquete.
+      - run: npm run build
       # prepublishOnly corre lint, typecheck, tests y build antes de publicar.
       - run: npm publish --provenance --access public
