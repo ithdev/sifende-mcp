@@ -152,11 +152,9 @@ export function registrarLectura(servidor: McpServer, { sifende, config }: Conte
       description:
         'Busca un RUC o una cédula en el padrón de la SET y devuelve razón social, tipo de contribuyente y domicilio, con los mismos nombres de campo que el receptor de un documento. Úsala para completar el receptor de una factura. Acepta el número con o sin puntos y con o sin dígito verificador.',
       inputSchema: {
+        // Algunos clientes mandan el RUC como número; con 8 dígitos no hay pérdida de precisión.
         documento: z
-          .string()
-          .trim()
-          .min(1)
-          .max(20)
+          .preprocess((v) => (typeof v === 'number' ? String(v) : v), z.string().trim().min(1).max(20))
           .describe('RUC o cédula, por ejemplo "80012345-0", "80012345" o "1.234.567".'),
       },
       annotations: { ...SOLO_LECTURA, title: 'Consultar RUC o cédula en el padrón' },

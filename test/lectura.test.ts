@@ -130,6 +130,14 @@ describe('catálogos y consultas', () => {
     expect(String(fetch.mock.calls[0]?.[0])).toContain('/api/v1/padron/80012345-0');
   });
 
+  it('testConsultarPadronAceptaDocumentoNumerico', async () => {
+    const fetch = mockFetch(() => json({ data: { numeroDocumento: '80178973', nombreRazonSocial: 'ITH E.A.S.' } }));
+    sesion = await conectar({ fetch });
+    const datos = datosDe(await sesion.llamar('consultar_padron', { documento: 80178973 }));
+    expect(datos.nombreRazonSocial).toBe('ITH E.A.S.');
+    expect(String(fetch.mock.calls[0]?.[0])).toContain('/api/v1/padron/80178973');
+  });
+
   it('testListarEnumeracionesSinNombreListaLosNombres', async () => {
     const fetch = mockFetch(() =>
       json({ tipoPago: [{ name: 'EFECTIVO', val: 1 }], unidadMedida: [{ name: 'UNI' }, { name: 'kg' }] }),
