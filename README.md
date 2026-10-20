@@ -194,10 +194,18 @@ SIFENDE_API_KEY=sk_sandbox_... npm run inspector
 
 El nombre es `py.com.sifende/mcp` (`sifende.com.py` al revés) y se verifica por DNS, con un registro TXT en el apex de `sifende.com.py` que contiene la clave pública (`v=MCPv1; k=ed25519; p=...`).
 
+Subí la versión en `package.json` y en los dos campos `version` de `server.json`, publicá en npm y después:
+
 ```bash
 mcp-publisher validate
 mcp-publisher login dns --domain sifende.com.py --private-key "$MCP_PRIVATE_KEY"
 mcp-publisher publish
+```
+
+`--private-key` espera los 32 bytes de la clave privada en hexadecimal. Si la clave está en un archivo PEM, convertila así:
+
+```bash
+MCP_PRIVATE_KEY="$(openssl pkey -in clave-ed25519.pem -outform DER | tail -c 32 | xxd -p -c 64)"
 ```
 
 ## Licencia
