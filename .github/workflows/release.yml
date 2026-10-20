@@ -1,7 +1,7 @@
 name: Release
 
-# Publica en npm al publicar un GitHub Release con tag vX.Y.Z igual a la versión de package.json.
-# Usa trusted publishing (OIDC): sin NPM_TOKEN, con provenance firmada.
+# Publica en npm y en el MCP Registry al publicar un GitHub Release con tag vX.Y.Z igual a la versión de package.json.
+# npm usa trusted publishing (OIDC): sin NPM_TOKEN, con provenance firmada. El Registry usa la clave DNS en MCP_PRIVATE_KEY.
 on:
   release:
     types: [published]
@@ -42,3 +42,43 @@ jobs:
       - run: npm run build
       # prepublishOnly corre lint, typecheck, tests y build antes de publicar.
       - run: npm publish --provenance --access public
+
+  registry:
+    name: Publicar en el MCP Registry
+    needs: publicar
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Environment propio: la clave del Registry solo la ve este job, y el environment solo admite tags v*.
+    environment: mcp-registry
+    permissions:
+      contents: read
+    env:
+      MCP_PUBLISHER_VERSION: 1.8.1
+      MCP_PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Instalar mcp-publisher
+        run: |
+          curl -fsSL -o mcp-publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/download/v${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          echo "${MCP_PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum -c -
+          tar -xzf mcp-publisher.tar.gz mcp-publisher
+          rm mcp-publisher.tar.gz
+      # El Registry exige que el paquete ya esté en npm, y npm tarda unos segundos en mostrar la versión nueva.
+      - name: Esperar a que npm muestre la versión
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          for intento in $(seq 1 20); do
+            if [ "$(npm view "@sifende/mcp@$version" mcpName --prefer-online 2>/dev/null)" = "py.com.sifende/mcp" ]; then
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::npm no muestra @sifende/mcp@$version con mcpName py.com.sifende/mcp"
+          exit 1
+      - run: ./mcp-publisher validate
+      # MCP_PRIVATE_KEY: los 32 bytes de la clave ed25519 en hex; la pública es el TXT del apex de sifende.com.py.
+      - run: ./mcp-publisher login dns --domain sifende.com.py --private-key "$MCP_PRIVATE_KEY"
+        env:
+          MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
+      - run: ./mcp-publisher publish
