@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.ithdev/sifende-mcp",
+  "name": "py.com.sifende/mcp",
   "title": "Sifende",
   "description": "Servidor MCP de Sifende: consultá y emití facturas electrónicas de SIFEN (Paraguay).",
   "repository": {

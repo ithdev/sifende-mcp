@@ -173,18 +173,11 @@ Los tests usan el servidor MCP en memoria y simulan la API con un `fetch` falso:
 
 `server.json` está listo para el [Registry oficial](https://registry.modelcontextprotocol.io). El `name` de `server.json` tiene que ser igual al `mcpName` de `package.json`, y el paquete tiene que estar publicado en npm antes de publicar en el Registry.
 
-Hay dos namespaces posibles:
-
-| Namespace | Autenticación | Requisitos |
-|---|---|---|
-| `io.github.ithdev/sifende-mcp` (el actual) | `mcp-publisher login github` | Ser propietario (Owner) de la organización `ithdev` en GitHub. |
-| `py.com.sifende/mcp` | `mcp-publisher login dns --domain sifende.com.py ...` | Registro TXT en el apex de `sifende.com.py` con la clave pública (`v=MCPv1; k=ed25519; p=...`). Hay que cambiar `name` en `server.json` y `mcpName` en `package.json`. |
-
-El nombre con dominio es la reversa de `sifende.com.py`: el namespace es `py.com.sifende`, no `com.sifende`.
+El nombre es `py.com.sifende/mcp` (la reversa de `sifende.com.py`) y se verifica por DNS: un registro TXT en el apex de `sifende.com.py` con la clave pública (`v=MCPv1; k=ed25519; p=...`).
 
 ```bash
 mcp-publisher validate
-mcp-publisher login github
+mcp-publisher login dns --domain sifende.com.py --private-key "$MCP_PRIVATE_KEY"
 mcp-publisher publish
 ```
 
