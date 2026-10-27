@@ -1,5 +1,9 @@
 # @sifende/mcp
 
+[![npm](https://img.shields.io/npm/v/@sifende/mcp)](https://www.npmjs.com/package/@sifende/mcp)
+[![CI](https://github.com/ithdev/sifende-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/ithdev/sifende-mcp/actions/workflows/ci.yml)
+[![Licencia: Apache 2.0](https://img.shields.io/badge/licencia-Apache%202.0-blue)](LICENSE)
+
 Servidor [MCP](https://modelcontextprotocol.io) oficial de Sifende. Conecta Claude, Cursor y otros clientes MCP a tu cuenta de Sifende para que puedas pedir en lenguaje natural lo que hoy hacés con la API: consultar documentos electrónicos de SIFEN, descargar el KuDE, buscar un RUC en el padrón y, si lo habilitás, emitir facturas, notas y eventos.
 
 - Corre en tu máquina, por `stdio`, con tu propia API key. No hay servidor intermedio ni se envía nada a terceros.
@@ -190,29 +194,13 @@ SIFENDE_API_KEY=sk_sandbox_... npm run inspector
 
 ### Publicar una versión
 
-1. Subí la versión en `package.json`, en `src/version.ts` y en los dos campos `version` de `server.json`. Los tests fallan si no coinciden.
-2. Hacé commit, push a `main` y esperá a que pase la CI.
-3. Creá un GitHub Release con el tag `vX.Y.Z` de esa versión.
+Los pasos para publicar en npm y en el MCP Registry están en [RELEASING.md](RELEASING.md).
 
-El workflow `release.yml` publica en npm y después en el [MCP Registry](https://registry.modelcontextprotocol.io). Necesita dos cosas configuradas una sola vez:
+## Soporte
 
-- **npm:** trusted publishing para `@sifende/mcp` con el workflow `release.yml` y el environment `npm`. No usa token.
-- **MCP Registry:** el secret `MCP_PRIVATE_KEY` en el environment `mcp-registry`, que solo admite tags `v*`. Es la clave privada ed25519 cuya clave pública está en el registro TXT del apex de `sifende.com.py` (`v=MCPv1; k=ed25519; p=...`). Así se verifica el nombre `py.com.sifende/mcp` (`sifende.com.py` al revés).
-
-`MCP_PRIVATE_KEY` va como los 32 bytes de la clave en hexadecimal. Para cargarla desde un archivo PEM:
-
-```bash
-openssl pkey -in clave-ed25519.pem -outform DER | tail -c 32 | xxd -p -c 64 \
-  | tr -d "\n" | gh secret set MCP_PRIVATE_KEY --env mcp-registry --repo ithdev/sifende-mcp
-```
-
-Si el job del Registry falla, se puede publicar a mano desde la raíz del repo, con la versión ya publicada en npm:
-
-```bash
-mcp-publisher validate
-mcp-publisher login dns --domain sifende.com.py --private-key "$MCP_PRIVATE_KEY"
-mcp-publisher publish
-```
+- Errores del servidor MCP: abrí un [issue](https://github.com/ithdev/sifende-mcp/issues).
+- Vulnerabilidades: reportalas en privado, como explica [SECURITY.md](SECURITY.md).
+- Tu cuenta, tus documentos o la API: escribinos a [soporte@sifende.com.py](mailto:soporte@sifende.com.py).
 
 ## Licencia
 
